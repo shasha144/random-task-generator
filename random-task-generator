@@ -1,0 +1,119 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+import json
+
+# Список предопределённых задач
+default_tasks = [
+    {"title": "Прочитать статью", "type": "учёба"},
+    {"title": "Сделать зарядку", "type": "спорт"},
+    {"title": "Написать отчёт", "type": "работа"},
+    {"title": "Выучить 10 новых слов", "type": "учёба"},
+    {"title": "Пробежать 2 км", "type": "спорт"},
+    {"title": "Созвониться с коллегой", "type": "работа"}
+]
+
+# Загрузка истории из JSON
+def load_history():
+    try:
+        with open("tasks.json", "r", encoding="utf-8") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+# Сохранение истории в JSON
+def save_history(history):
+    with open("tasks.json", "w", encoding="utf-8") as file:
+        json.dump(history, file, ensure_ascii=False, indent=4)
+
+# Глобальные переменные
+history = load_history()
+current_filter = "все"
+
+# Обновление списка истории в интерфейсе
+def update_history_display():
+    history_listbox.delete(0, tk.END)
+    filtered = [item for item in history if current_filter == "все" or item["type"] == current_filter]
+    for item in filtered:
+        display_text = f"{item['title']} ({item['type']})"
+        history_listbox.insert(tk.END, display_text)
+
+# Генерация случайной задачи
+def generate_task():
+    global history
+    if not default_tasks:
+        messagebox.showwarning("Предупреждение", "Список задач пуст")
+        return
+    task = random.choice(default_tasks)
+    history.append(task)
+    save_history(history)
+    update_history_display()
+    result_label.config(text=f"Новая задача: {task['title']}")
+
+# Добавление новой задачи пользователем
+def add_custom_task():
+    title = entry_task.get().strip()
+    task_type = type_var.get()
+    if not title:
+        messagebox.showwarning("Ошибка", "Название задачи не может быть пустым")
+        return
+    if not task_type:
+        messagebox.showwarning("Ошибка", "Выберите тип задачи")
+        return
+    new_task = {"title": title, "type": task_type}
+    default_tasks.append(new_task)
+    entry_task.delete(0, tk.END)
+    messagebox.showinfo("Успех", f"Задача '{title}' добавлена в список")
+
+# Установка фильтра
+def set_filter(filter_type):
+    global current_filter
+    current_filter = filter_type
+    update_history_display()
+
+# Создание окна
+window = tk.Tk()
+window.title("Random Task Generator")
+window.geometry("600x500")
+window.resizable(False, False)
+
+# Заголовок
+tk.Label(window, text="Генератор случайных задач", font=("Arial", 16, "bold")).pack(pady=10)
+
+# Кнопка генерации
+tk.Button(window, text="Сгенерировать задачу", command=generate_task, bg="lightblue", padx=10, pady=5).pack(pady=5)
+
+# Метка для вывода задачи
+result_label = tk.Label(window, text="Нажмите кнопку", font=("Arial", 10), fg="green")
+result_label.pack(pady=5)
+
+# Фильтры
+filter_frame = tk.Frame(window)
+filter_frame.pack(pady=10)
+tk.Button(filter_frame, text="Все", command=lambda: set_filter("все")).pack(side=tk.LEFT, padx=5)
+tk.Button(filter_frame, text="Учёба", command=lambda: set_filter("учёба")).pack(side=tk.LEFT, padx=5)
+tk.Button(filter_frame, text="Спорт", command=lambda: set_filter("спорт")).pack(side=tk.LEFT, padx=5)
+tk.Button(filter_frame, text="Работа", command=lambda: set_filter("работа")).pack(side=tk.LEFT, padx=5)
+
+# История задач
+tk.Label(window, text="История задач:", font=("Arial", 12)).pack()
+history_listbox = tk.Listbox(window, width=70, height=10)
+history_listbox.pack(pady=5)
+
+# Добавление новой задачи
+add_frame = tk.Frame(window)
+add_frame.pack(pady=10)
+tk.Label(add_frame, text="Новая задача:").pack(side=tk.LEFT)
+entry_task = tk.Entry(add_frame, width=30)
+entry_task.pack(side=tk.LEFT, padx=5)
+type_var = tk.StringVar()
+type_var.set("учёба")
+type_menu = tk.OptionMenu(add_frame, type_var, "учёба", "спорт", "работа")
+type_menu.pack(side=tk.LEFT, padx=5)
+tk.Button(add_frame, text="Добавить", command=add_custom_task).pack(side=tk.LEFT, padx=5)
+
+# Загрузка истории при старте
+update_history_display()
+
+# Запуск
+window.mainloop()
